@@ -358,7 +358,12 @@ def main() -> None:
     # this run finished. If no events were seen, leave the prior bookmark in place
     # (don't advance past data we never observed).
     if max_ts is not None:
-        bookmark_iso = datetime.fromtimestamp(max_ts / 1000.0, tz=timezone.utc).isoformat()
+        # Ceil to next whole second: nrql_ts() truncates sub-seconds, so truncating
+        # the bookmark would re-fetch events in the last partial second on the next run.
+        max_dt = datetime.fromtimestamp(max_ts / 1000.0, tz=timezone.utc)
+        has_subseconds = max_dt.microsecond > 0
+        ceiled = max_dt.replace(microsecond=0) + (timedelta(seconds=1) if has_subseconds else timedelta(0))
+        bookmark_iso = ceiled.isoformat()
     elif prior_bookmark_iso:
         bookmark_iso = prior_bookmark_iso
     else:

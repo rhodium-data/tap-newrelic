@@ -6,8 +6,8 @@ tap-newrelic-apirequest
 Pulls New Relic ApiRequestEvent rows via the NerdGraph (NRQL) API.
 
 Two output modes:
-  --mode ndjson  (default)  one JSON object per line on stdout
-  --mode singer             Singer-tap protocol: SCHEMA, RECORD, STATE messages
+  --mode singer  (default)  Singer-tap protocol: SCHEMA, RECORD, STATE messages
+  --mode ndjson             one JSON object per line on stdout
 
 Two ways to be configured:
   1. CLI flags / env vars (standalone use)
@@ -27,6 +27,9 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
+
+# -- Constants ---------------------------------------------------------------
+
 NERDGRAPH_URL = "https://api.newrelic.com/graphql"
 DEFAULT_QUERY = "SELECT * FROM ApiRequestEvent"
 DEFAULT_STREAM_NAME = "api_request_event"
@@ -34,7 +37,10 @@ NRQL_LIMIT_MAX = 5000
 MIN_BISECT_SECONDS = 0.5
 HTTP_TIMEOUT_SECONDS = 60
 
-GRAPHQL_QUERY = """
+
+# -- NerdGraph query template -------------------------------------------------
+
+NERDGRAPH_QUERY_TEMPLATE = """
 query($accountId: Int!, $nrql: Nrql!) {
   actor {
     account(id: $accountId) {
@@ -44,7 +50,10 @@ query($accountId: Int!, $nrql: Nrql!) {
 }
 """.strip()
 
-# Typed Singer schema for ApiRequestEvent based on Boron's
+
+# -- Singer stream schema -----------------------------------------------------
+
+# Typed schema for ApiRequestEvent based on Boron's
 # `lambdas/v{0,1}/common/lib/boron_base_lambda.rb#send_newrelic_event`. Boron sends
 # everything as a string (`.to_s`) except `timestamp` (added by NR as ms unix int).
 # `additionalProperties: true` keeps NR-injected fields (entityGuid, appName, etc.)
@@ -71,6 +80,8 @@ APIREQUEST_KEY_PROPERTIES = ["timestamp"]
 APIREQUEST_REPLICATION_KEY = "timestamp"
 
 
+# -- Datetime utilities -------------------------------------------------------
+
 def parse_iso8601(s: str) -> datetime:
     if s.endswith("Z"):
         s = s[:-1] + "+00:00"
@@ -83,6 +94,8 @@ def parse_iso8601(s: str) -> datetime:
 def nrql_ts(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
+
+# -- HTTP / NerdGraph ---------------------------------------------------------
 
 def make_session() -> requests.Session:
     """
@@ -120,7 +133,7 @@ def fetch_window(
         f"SINCE '{nrql_ts(start)}' UNTIL '{nrql_ts(end)}' LIMIT MAX"
     )
     payload = {
-        "query": GRAPHQL_QUERY,
+        "query": NERDGRAPH_QUERY_TEMPLATE,
         "variables": {"accountId": account_id, "nrql": nrql},
     }
     r = session.post(
@@ -179,6 +192,8 @@ def stream_events(
             yield row
 
 
+# -- Singer output ------------------------------------------------------------
+
 def emit_ndjson(events: Iterator[dict]) -> tuple[int, int | None]:
     """Emit NDJSON. Returns (count, max_timestamp_ms_seen_or_None)."""
     n = 0
@@ -226,17 +241,15 @@ def emit_singer(
     return n, max_ts
 
 
-def write_state(path: str, stream_name: str, bookmark_iso: str) -> None:
-    sys.stdout.write(json.dumps({
-        "type": "STATE",
-        "value": {"bookmarks": {stream_name: {"replication_key_value": bookmark_iso}}},
-    }) + "\n")
-    with open(path, "w") as f:
-        json.dump(
-            {"bookmarks": {stream_name: {"replication_key_value": bookmark_iso}}},
-            f,
-        )
+def write_state(stream_name: str, bookmark_iso: str, path: str | None = None) -> None:
+    state = {"bookmarks": {stream_name: {"replication_key_value": bookmark_iso}}}
+    sys.stdout.write(json.dumps({"type": "STATE", "value": state}) + "\n")
+    if path:
+        with open(path, "w") as f:
+            json.dump(state, f)
 
+
+# -- Config & state I/O -------------------------------------------------------
 
 def load_config_file(path: str) -> dict[str, Any]:
     with open(path) as f:
@@ -250,6 +263,8 @@ def load_state_file(path: str) -> dict[str, Any] | None:
     except FileNotFoundError:
         return None
 
+
+# -- CLI ----------------------------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -276,8 +291,8 @@ def parse_args() -> argparse.Namespace:
 def resolve_config(args: argparse.Namespace) -> dict[str, Any]:
     """
     Build effective config from (highest to lowest priority):
-      1. --config file
-      2. CLI flags
+      1. CLI flags
+      2. --config file
       3. environment variables
     """
     cfg: dict[str, Any] = {
@@ -292,6 +307,8 @@ def resolve_config(args: argparse.Namespace) -> dict[str, Any]:
         cfg.update({k: v for k, v in load_config_file(args.config).items() if v is not None})
     return cfg
 
+
+# -- Entry point --------------------------------------------------------------
 
 def main() -> None:
     args = parse_args()
@@ -361,8 +378,8 @@ def main() -> None:
         file=sys.stderr,
     )
 
-    if args.mode == "singer" and args.state:
-        write_state(args.state, cfg["stream_name"], bookmark_iso)
+    if args.mode == "singer":
+        write_state(cfg["stream_name"], bookmark_iso, path=args.state)
 
 
 if __name__ == "__main__":

@@ -62,6 +62,10 @@ plugins:
       api_key: ${NEW_RELIC_API_KEY}
 ```
 
+## Known Limitations
+
+- **Catch-up runs (>100k records)**: pipelinewise target-redshift triggers a mid-stream batch flush at 100k rows, before the tap's final STATE message is received. This causes `AttributeError: 'NoneType'.get()` in the target. Normal hourly runs (~2k records) are unaffected. For catch-up scenarios use a narrow `start_time`/`end_time` window to stay under 100k records per run.
+
 ## How it works
 
 Pulls events using NRQL `SINCE`/`UNTIL` time windows. When a window returns

@@ -251,7 +251,9 @@ def write_state(stream_name: str, bookmark_iso: str, path: str | None = None) ->
 
 # -- Config & state I/O -------------------------------------------------------
 
-def load_config_file(path: str) -> dict[str, Any]:
+def load_config_file(path: str | None) -> dict[str, Any]:
+    if not path:
+        return {}
     with open(path) as f:
         return json.load(f)
 
@@ -266,45 +268,35 @@ def load_state_file(path: str) -> dict[str, Any] | None:
 
 # -- CLI ----------------------------------------------------------------------
 
+_CONFIG_KEYS = {"account_id", "api_key", "start_time", "end_time", "query", "stream_name"}
+
+
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(
-        description="Pull New Relic ApiRequestEvent rows via NerdGraph.",
-    )
-    p.add_argument("--config", help="Singer-style JSON config file (overrides CLI/env)")
-    p.add_argument("--state", help="Singer-style JSON state file (singer mode only)")
-    p.add_argument("--account-id", type=int, default=None,
-                   help="NR account ID (default: $NEW_RELIC_ACCOUNT_ID)")
-    p.add_argument("--api-key", default=None,
-                   help="NR User API key (default: $NEW_RELIC_API_KEY)")
-    p.add_argument("--start-time", default=None,
-                   help="ISO8601 (default: 1h ago UTC)")
-    p.add_argument("--end-time", default=None,
-                   help="ISO8601 (default: now UTC)")
-    p.add_argument("--query", default=DEFAULT_QUERY,
-                   help=f"Base NRQL (default: {DEFAULT_QUERY!r})")
-    p.add_argument("--mode", choices=("ndjson", "singer"), default="singer")
-    p.add_argument("--stream-name", default=DEFAULT_STREAM_NAME,
-                   help=f"Singer stream name (default: {DEFAULT_STREAM_NAME!r})")
+    p = argparse.ArgumentParser(description="Pull New Relic ApiRequestEvent rows via NerdGraph.")
+    p.add_argument("--config",      help="Singer-style JSON config file")
+    p.add_argument("--state",       help="Singer-style JSON state file (singer mode only)")
+    p.add_argument("--account-id",  type=int, default=None, help="NR account ID (default: $NEW_RELIC_ACCOUNT_ID)")
+    p.add_argument("--api-key",     default=None, help="NR User API key (default: $NEW_RELIC_API_KEY)")
+    p.add_argument("--start-time",  default=None, help="ISO8601 (default: 1h ago UTC)")
+    p.add_argument("--end-time",    default=None, help="ISO8601 (default: now UTC)")
+    p.add_argument("--query",       default=None, help=f"Base NRQL (default: {DEFAULT_QUERY!r})")
+    p.add_argument("--mode",        choices=("ndjson", "singer"), default="singer")
+    p.add_argument("--stream-name", default=None, help=f"Singer stream name (default: {DEFAULT_STREAM_NAME!r})")
     return p.parse_args()
 
 
 def resolve_config(args: argparse.Namespace) -> dict[str, Any]:
-    """
-    Build effective config from (highest to lowest priority):
-      1. CLI flags
-      2. --config file
-      3. environment variables
-    """
+    """Build effective config: defaults → config file → env vars → CLI flags (highest priority)."""
     cfg: dict[str, Any] = {
-        "account_id": args.account_id or os.environ.get("NEW_RELIC_ACCOUNT_ID"),
-        "api_key": args.api_key or os.environ.get("NEW_RELIC_API_KEY"),
-        "start_time": args.start_time,
-        "end_time": args.end_time,
-        "query": args.query,
-        "stream_name": args.stream_name,
+        "query":       DEFAULT_QUERY,
+        "stream_name": DEFAULT_STREAM_NAME,
     }
-    if args.config:
-        cfg.update({k: v for k, v in load_config_file(args.config).items() if v is not None})
+    cfg.update({k: v for k, v in load_config_file(args.config).items() if k in _CONFIG_KEYS and v is not None})
+    if val := os.environ.get("NEW_RELIC_ACCOUNT_ID"):
+        cfg["account_id"] = val
+    if val := os.environ.get("NEW_RELIC_API_KEY"):
+        cfg["api_key"] = val
+    cfg.update({k: v for k, v in vars(args).items() if k in _CONFIG_KEYS and v is not None})
     return cfg
 
 

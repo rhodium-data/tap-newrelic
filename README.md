@@ -5,7 +5,7 @@ Singer tap for New Relic `ApiRequestEvent` via the NerdGraph (NRQL) API.
 ## Installation
 
 ```bash
-pip install git+https://github.com/rhodium-data/tap-newrelic-apirequest.git
+pip install git+https://github.com/rhodium-data/tap-newrelic.git
 ```
 
 ## Configuration
@@ -35,9 +35,6 @@ tap-newrelic-apirequest | target-redshift
 # With state (incremental)
 tap-newrelic-apirequest --state state.json | target-redshift
 
-# Discover mode — output Singer catalog
-tap-newrelic-apirequest --discover
-
 # Custom time window
 tap-newrelic-apirequest --start-time 2025-01-01T00:00:00Z --end-time 2025-01-02T00:00:00Z
 
@@ -52,11 +49,9 @@ plugins:
   extractors:
   - name: tap-newrelic-apirequest
     namespace: tap_newrelic_apirequest
-    pip_url: git+https://github.com/rhodium-data/tap-newrelic-apirequest.git
+    pip_url: git+https://github.com/rhodium-data/tap-newrelic.git
     capabilities:
       - state
-      - catalog
-      - discover
     config:
       account_id: ${NEW_RELIC_ACCOUNT_ID}
       api_key: ${NEW_RELIC_API_KEY}
@@ -65,6 +60,7 @@ plugins:
 ## Known Limitations
 
 - **Catch-up runs (>100k records)**: pipelinewise target-redshift triggers a mid-stream batch flush at 100k rows, before the tap's final STATE message is received. This causes `AttributeError: 'NoneType'.get()` in the target. Normal hourly runs (~2k records) are unaffected. For catch-up scenarios use a narrow `start_time`/`end_time` window to stay under 100k records per run.
+- **No `--discover` mode**: the tap does not support Singer's `--discover` flag or `catalog`/`discover` capabilities. Field selection via `meltano select`, strict schema-validating targets, and Singer ecosystem tooling that requires catalog discovery will not work. For single-stream, all-fields use cases (the intended deployment) this has no impact.
 
 ## How it works
 

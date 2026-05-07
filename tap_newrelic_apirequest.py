@@ -62,6 +62,7 @@ APIREQUEST_SCHEMA = {
     "type": "object",
     "additionalProperties": True,
     "properties": {
+        "_row_id":            {"type": "string"},
         "timestamp":          {"type": "integer"},
         "eventType":          {"type": ["string", "null"]},
         "env":                {"type": ["string", "null"]},
@@ -74,9 +75,10 @@ APIREQUEST_SCHEMA = {
         "query_parameters":   {"type": ["string", "null"]},
         "path_parameters":    {"type": ["string", "null"]},
         "aws_request_id":     {"type": ["string", "null"]},
+        "request_id":         {"type": ["string", "null"]},
     },
 }
-APIREQUEST_KEY_PROPERTIES = ["timestamp"]
+APIREQUEST_KEY_PROPERTIES = ["_row_id"]
 APIREQUEST_REPLICATION_KEY = "timestamp"
 
 
@@ -199,6 +201,7 @@ def emit_ndjson(events: Iterator[dict]) -> tuple[int, int | None]:
     n = 0
     max_ts: int | None = None
     for e in events:
+        e["_row_id"] = e.get("aws_request_id") or e.get("request_id")
         ts = e.get("timestamp")
         if isinstance(ts, int) and (max_ts is None or ts > max_ts):
             max_ts = ts
@@ -228,6 +231,7 @@ def emit_singer(
     n = 0
     max_ts: int | None = None
     for e in events:
+        e["_row_id"] = e.get("aws_request_id") or e.get("request_id")
         ts = e.get("timestamp")
         if isinstance(ts, int) and (max_ts is None or ts > max_ts):
             max_ts = ts

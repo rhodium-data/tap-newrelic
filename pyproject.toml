@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "tap-newrelic-apirequest"
+name = "tap-newrelic"
 version = "0.1.0"
 description = "Singer tap for New Relic ApiRequestEvent via NerdGraph NRQL"
 authors = ["rhodium-data <developers@rhodium-data.com>"]
@@ -20,4 +20,4 @@ requires      = ["poetry-core>=1.0.8"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-tap-newrelic-apirequest = "tap_newrelic_apirequest:main"
+tap-newrelic = "tap_newrelic:main"

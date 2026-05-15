@@ -1,10 +1,10 @@
-"""Basic tests for tap-newrelic-apirequest."""
+"""Basic tests for tap-newrelic."""
 
 from datetime import datetime, timezone
 
 import pytest
 
-from tap_newrelic_apirequest import parse_iso8601, nrql_ts
+from tap_newrelic import parse_iso8601, nrql_ts
 
 
 def test_parse_iso8601_z_suffix():

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-tap-newrelic-apirequest
-=======================
+tap-newrelic
+============
 
 Pulls New Relic ApiRequestEvent rows via the NerdGraph (NRQL) API.
 

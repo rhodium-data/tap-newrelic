@@ -1,4 +1,4 @@
-# tap-newrelic-apirequest
+# tap-newrelic
 
 Singer tap for New Relic `ApiRequestEvent` via the NerdGraph (NRQL) API.
 
@@ -30,16 +30,16 @@ export NEW_RELIC_API_KEY=NRAK-...
 
 ```bash
 # Singer mode (default) — pipe to a target
-tap-newrelic-apirequest | target-redshift
+tap-newrelic | target-redshift
 
 # With state (incremental)
-tap-newrelic-apirequest --state state.json | target-redshift
+tap-newrelic --state state.json | target-redshift
 
 # Custom time window
-tap-newrelic-apirequest --start-time 2025-01-01T00:00:00Z --end-time 2025-01-02T00:00:00Z
+tap-newrelic --start-time 2025-01-01T00:00:00Z --end-time 2025-01-02T00:00:00Z
 
 # NDJSON output (no Singer protocol)
-tap-newrelic-apirequest --mode ndjson
+tap-newrelic --mode ndjson
 ```
 
 ## Meltano
@@ -47,8 +47,8 @@ tap-newrelic-apirequest --mode ndjson
 ```yaml
 plugins:
   extractors:
-  - name: tap-newrelic-apirequest
-    namespace: tap_newrelic_apirequest
+  - name: tap-newrelic
+    namespace: tap_newrelic
     pip_url: git+https://github.com/rhodium-data/tap-newrelic.git
     capabilities:
       - state

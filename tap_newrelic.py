@@ -201,7 +201,7 @@ def emit_ndjson(events: Iterator[dict]) -> tuple[int, int | None]:
     n = 0
     max_ts: int | None = None
     for e in events:
-        e["_row_id"] = e.get("aws_request_id") or e.get("request_id")
+        e["_row_id"] = e.get("aws_request_id") or e.get("request_id") or str(e.get("timestamp", ""))
         ts = e.get("timestamp")
         if isinstance(ts, int) and (max_ts is None or ts > max_ts):
             max_ts = ts
@@ -231,7 +231,7 @@ def emit_singer(
     n = 0
     max_ts: int | None = None
     for e in events:
-        e["_row_id"] = e.get("aws_request_id") or e.get("request_id")
+        e["_row_id"] = e.get("aws_request_id") or e.get("request_id") or str(e.get("timestamp", ""))
         ts = e.get("timestamp")
         if isinstance(ts, int) and (max_ts is None or ts > max_ts):
             max_ts = ts

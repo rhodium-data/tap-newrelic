@@ -353,6 +353,8 @@ def main() -> None:
         )
 
     if args.mode == "singer":
+        # Emit initial STATE before records so targets never see state=None on first batch flush.
+        write_state(cfg["stream_name"], start.isoformat())
         n, max_ts = emit_singer(events, cfg["stream_name"], schema, key_properties, replication_key)
     else:
         n, max_ts = emit_ndjson(events)

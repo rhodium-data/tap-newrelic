@@ -76,6 +76,7 @@ APIREQUEST_SCHEMA = {
         "path_parameters":    {"type": ["string", "null"]},
         "aws_request_id":     {"type": ["string", "null"]},
         "request_id":         {"type": ["string", "null"]},
+        "ai_client":          {"type": ["string", "null"]},
     },
 }
 APIREQUEST_KEY_PROPERTIES = ["_row_id"]

@@ -58,11 +58,13 @@ query($accountId: Int!, $nrql: Nrql!) {
 # everything as a string (`.to_s`) except `timestamp` (added by NR as ms unix int).
 # `additionalProperties: true` keeps NR-injected fields (entityGuid, appName, etc.)
 # from failing schema validation in strict targets.
+# `row_id` is synthesized by the tap as the upsert key; it must not have a leading
+# underscore — Redshift reserved "_row_id" as a system column (2026-07-11 patch).
 APIREQUEST_SCHEMA = {
     "type": "object",
     "additionalProperties": True,
     "properties": {
-        "_row_id":            {"type": "string"},
+        "row_id":             {"type": "string"},
         "timestamp":          {"type": "integer"},
         "eventType":          {"type": ["string", "null"]},
         "env":                {"type": ["string", "null"]},
@@ -79,7 +81,7 @@ APIREQUEST_SCHEMA = {
         "ai_client":          {"type": ["string", "null"]},
     },
 }
-APIREQUEST_KEY_PROPERTIES = ["_row_id"]
+APIREQUEST_KEY_PROPERTIES = ["row_id"]
 APIREQUEST_REPLICATION_KEY = "timestamp"
 
 
@@ -202,7 +204,7 @@ def emit_ndjson(events: Iterator[dict]) -> tuple[int, int | None]:
     n = 0
     max_ts: int | None = None
     for e in events:
-        e["_row_id"] = e.get("aws_request_id") or e.get("request_id") or str(e.get("timestamp", ""))
+        e["row_id"] = e.get("aws_request_id") or e.get("request_id") or str(e.get("timestamp", ""))
         ts = e.get("timestamp")
         if isinstance(ts, int) and (max_ts is None or ts > max_ts):
             max_ts = ts
@@ -232,7 +234,7 @@ def emit_singer(
     n = 0
     max_ts: int | None = None
     for e in events:
-        e["_row_id"] = e.get("aws_request_id") or e.get("request_id") or str(e.get("timestamp", ""))
+        e["row_id"] = e.get("aws_request_id") or e.get("request_id") or str(e.get("timestamp", ""))
         ts = e.get("timestamp")
         if isinstance(ts, int) and (max_ts is None or ts > max_ts):
             max_ts = ts

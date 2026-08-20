@@ -1,3 +1,5 @@
+> **Archived and read-only.**
+
 # tap-newrelic
 
 Singer tap for New Relic `ApiRequestEvent` via the NerdGraph (NRQL) API.

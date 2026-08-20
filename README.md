@@ -1,3 +1,13 @@
+> [!IMPORTANT]
+> **Archived and read-only.** Development has moved to the internal monorepo
+> **`dft-main/meltano-plugins`**, subdirectory **`tap-newrelic/`**.
+> Latest release: `tap-newrelic/v0.1.0`.
+>
+> Install from the monorepo (internal access required):
+> ```
+> pip install "git+https://github.com/dft-main/meltano-plugins.git@tap-newrelic/v0.1.0#subdirectory=tap-newrelic"
+> ```
+
 # tap-newrelic
 
 Singer tap for New Relic `ApiRequestEvent` via the NerdGraph (NRQL) API.
